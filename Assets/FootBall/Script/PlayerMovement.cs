@@ -1,26 +1,21 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using Unity.Netcode;
 
 public class PlayerMovement : NetworkBehaviour
 {
     [SerializeField] private Rigidbody m_SelfRigidbody;
     [SerializeField][Range(1,10)] private float m_Speed = 1;
-    [SerializeField] private Button m_ServerBtn ;
-    [SerializeField] private Button m_HostBtn ;
-    [SerializeField] private Button m_ClientBtn ;
 
-
-    private void Start() {
-        m_ServerBtn.onClick.AddListener(()=>NetworkManager.Singleton.StartServer());
-        m_HostBtn.onClick.AddListener(()=>NetworkManager.Singleton.StartHost());
-        m_ClientBtn.onClick.AddListener(()=>NetworkManager.Singleton.StartClient());
-    }
 
     public override void OnNetworkSpawn(){
-        if(!IsOwner) Destroy(this);
+        if(!IsOwner){
+            //Destroy(this);
+        }else{
+            this.transform.position = new Vector3(Random.Range(-5,5),2.1f,Random.Range(-5,5));
+        }
+
     }
 
     private void FixedUpdate() { 
