@@ -29,6 +29,10 @@ public class PlayerController : NetworkBehaviour
 
             return;
         }
+
+        if(IsHost){
+            // update ball
+        }
             
 
         MovementHandler();
