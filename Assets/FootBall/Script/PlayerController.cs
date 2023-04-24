@@ -3,19 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 
-public class PlayerMovement : NetworkBehaviour
+public class PlayerController : NetworkBehaviour
 {
     [SerializeField] private Rigidbody m_SelfRigidbody;
     [SerializeField][Range(1,10)] private float m_Speed = 1;
 
 
     public override void OnNetworkSpawn(){
-        if(!IsOwner){
-            //Destroy(this);
-        }else{
-            this.transform.position = new Vector3(Random.Range(-5,5),2.1f,Random.Range(-5,5));
-        }
-
+        if(IsOwner)
+        this.transform.position = new Vector3(Random.Range(-5,5),2.1f,Random.Range(-5,5));
     }
 
     private void FixedUpdate() { 
