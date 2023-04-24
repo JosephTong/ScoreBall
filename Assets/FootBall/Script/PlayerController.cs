@@ -8,17 +8,44 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private Rigidbody m_SelfRigidbody;
     [SerializeField][Range(1,10)] private float m_Speed = 1;
 
+    private PlayerNetData m_PlayerNetData;
+
 
     public override void OnNetworkSpawn(){
-        if(IsOwner)
-        this.transform.position = new Vector3(Random.Range(-5,5),2.1f,Random.Range(-5,5));
+        if(IsOwner){
+            this.transform.position = new Vector3(Random.Range(-5,5),2.1f,Random.Range(-5,5));
+            m_PlayerNetData = new PlayerNetData{
+                Rotation = 0,
+                Velocity = Vector3.zero,
+                Position = this.transform.position
+            };
+        }
     }
 
     private void FixedUpdate() { 
-        if(!IsOwner)
+        if(!IsOwner){
+            // update using the data given by host
+            UpdateMovementByReceiveData();
+
             return;
+        }
+            
 
         MovementHandler();
+    }
+
+    private void UpdateMovementByReceiveData(){
+        // owner update itself , no need for host
+        if(IsOwner)
+            return;
+
+        this.transform.localEulerAngles = new Vector3(0, m_PlayerNetData.Rotation ,0);
+        this.transform.position = m_PlayerNetData.Position;
+
+        // update physic on host 
+        // client will still update Physic if object is owned ( such as player , bullet )
+        if(IsHost)
+            m_SelfRigidbody.velocity = m_PlayerNetData.Velocity;
     }
 
 
@@ -69,6 +96,49 @@ public class PlayerController : NetworkBehaviour
 
         if(shouldMove)
             m_SelfRigidbody.velocity = this.transform.forward * m_Speed *10;
+
+        m_PlayerNetData = new PlayerNetData{
+                Rotation = rotation,
+                Velocity = m_SelfRigidbody.velocity,
+                Position = this.transform.position
+            };
+
+        SentUpdateDataToHostServerRpc(m_PlayerNetData);
+    }
+
+    
+
+    [ServerRpc]
+    private void SentUpdateDataToHostServerRpc(PlayerNetData playerData){
+        // host will do
+        // usually call by client 
+        UpdateAllClientRpc(playerData);
+
+    }
+
+    [ClientRpc]
+    private void UpdateAllClientRpc(PlayerNetData playerData){
+        // host will tell all client to do 
+        // Only host can use this method
+
+        m_PlayerNetData = playerData;
+        UpdateMovementByReceiveData();
+    }
+
+    private struct PlayerNetData :INetworkSerializable
+    {
+        public float Rotation;
+        public Vector3 Velocity;
+        public Vector3 Position;
+
+
+
+        void INetworkSerializable.NetworkSerialize<T>(BufferSerializer<T> serializer)
+        {
+            serializer.SerializeValue(ref Rotation);
+            serializer.SerializeValue(ref Velocity);
+            serializer.SerializeValue(ref Position);
+        }
     }
 
 }
