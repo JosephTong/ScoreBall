@@ -2,6 +2,42 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
+using PlayerNetStruckNamespace;
+
+namespace PlayerNetStruckNamespace
+{
+
+    public struct PlayerNetData :INetworkSerializable
+    {
+        public float Rotation;
+        public Vector3 Velocity;
+        public Vector3 Position;
+
+
+
+        void INetworkSerializable.NetworkSerialize<T>(BufferSerializer<T> serializer)
+        {
+            serializer.SerializeValue(ref Rotation);
+            serializer.SerializeValue(ref Velocity);
+            serializer.SerializeValue(ref Position);
+        }
+    }
+
+    public struct BallNetData :INetworkSerializable
+    {
+        public Quaternion Rotation;
+        public Vector3 Velocity;
+        public Vector3 Position;
+
+        void INetworkSerializable.NetworkSerialize<T>(BufferSerializer<T> serializer)
+        {
+            serializer.SerializeValue(ref Rotation);
+            serializer.SerializeValue(ref Velocity);
+            serializer.SerializeValue(ref Position);
+        }
+    }
+}
+
 
 public class PlayerController : NetworkBehaviour
 {
@@ -32,6 +68,7 @@ public class PlayerController : NetworkBehaviour
 
         if(IsHost){
             // update ball
+            UpdateBallClientRpc(FootBallInGameManager.GetInstacne().getBallData());
         }
             
 
@@ -129,20 +166,12 @@ public class PlayerController : NetworkBehaviour
         UpdateMovementByReceiveData();
     }
 
-    private struct PlayerNetData :INetworkSerializable
-    {
-        public float Rotation;
-        public Vector3 Velocity;
-        public Vector3 Position;
 
-
-
-        void INetworkSerializable.NetworkSerialize<T>(BufferSerializer<T> serializer)
-        {
-            serializer.SerializeValue(ref Rotation);
-            serializer.SerializeValue(ref Velocity);
-            serializer.SerializeValue(ref Position);
-        }
+    [ClientRpc]
+    private void UpdateBallClientRpc(BallNetData ballData){
+        FootBallInGameManager.GetInstacne().UpdateBall(ballData);
     }
+
+
 
 }
