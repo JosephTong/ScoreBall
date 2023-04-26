@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using PlayerNetStruckNamespace;
+using FootBallNameSpace;
 
 namespace PlayerNetStruckNamespace
 {
@@ -10,30 +11,28 @@ namespace PlayerNetStruckNamespace
     public struct PlayerNetData :INetworkSerializable
     {
         public float Rotation;
-        public Vector3 Velocity;
         public Vector3 Position;
-
-
 
         void INetworkSerializable.NetworkSerialize<T>(BufferSerializer<T> serializer)
         {
             serializer.SerializeValue(ref Rotation);
-            serializer.SerializeValue(ref Velocity);
             serializer.SerializeValue(ref Position);
         }
     }
-
-    public struct BallNetData :INetworkSerializable
+    
+    public struct BallData :INetworkSerializable
     {
-        public Quaternion Rotation;
-        public Vector3 Velocity;
         public Vector3 Position;
-
+        public Vector3 Rotation;
+        public Vector3 Velocity;
+        public Vector3 AngularVelocity;
+        
         void INetworkSerializable.NetworkSerialize<T>(BufferSerializer<T> serializer)
         {
+            serializer.SerializeValue(ref Position);
             serializer.SerializeValue(ref Rotation);
             serializer.SerializeValue(ref Velocity);
-            serializer.SerializeValue(ref Position);
+            serializer.SerializeValue(ref AngularVelocity);
         }
     }
 }
@@ -49,55 +48,46 @@ public class PlayerController : NetworkBehaviour
 
     public override void OnNetworkSpawn(){
         if(IsOwner){
-            this.transform.position = new Vector3(Random.Range(-5,5),2.1f,Random.Range(-5,5));
-            m_PlayerNetData = new PlayerNetData{
-                Rotation = 0,
-                Velocity = Vector3.zero,
+            this.transform.position = new Vector3((int)Random.Range(-5,5),2.1f,(int)Random.Range(-5,5));
+            FootBallInGameManager.GetInstacne().SetMainPlayer(this.transform);
+            m_PlayerNetData= new PlayerNetData{
+                Rotation = -1,
                 Position = this.transform.position
             };
-            FootBallInGameManager.GetInstacne().SetMainPlayer(this.transform);
+            
+            SentUpdateDataToHostServerRpc(m_PlayerNetData);
         }
     }
 
     private void FixedUpdate() { 
-        if(!IsOwner){
-            // update using the data given by host
-            UpdateMovementByReceiveData();
-
-            return;
-        }
-
+        
         if(IsHost){
-            // update ball
-            UpdateBallClientRpc(FootBallInGameManager.GetInstacne().getBallData());
+            UpdatBallPosServerRpc(FootBallInGameManager.GetInstacne().GetBallData());
         }
-            
-
-        FootBallInGameManager.GetInstacne().CameraFollowPlayer();
+        if(IsOwner){
+            // input
+            InputHandler();
+        }
         MovementHandler();
     }
 
-    private void UpdateMovementByReceiveData(){
-        // owner update itself , no need for host
-        if(IsOwner)
-            return;
+    private void MovementHandler(){
+        // teleport if too far away from owner pos
+        if(Vector3.Distance(this.transform.position , m_PlayerNetData.Position) >0.5f)
+            this.transform.position = m_PlayerNetData.Position;
 
-        this.transform.localEulerAngles = new Vector3(0, m_PlayerNetData.Rotation ,0);
-        this.transform.position = m_PlayerNetData.Position;
+        if(m_PlayerNetData.Rotation != -1){
+            this.transform.localEulerAngles = new Vector3(0, m_PlayerNetData.Rotation ,0);
+            m_SelfRigidbody.velocity = this.transform.forward * m_Speed *10;
+        }
 
-        // update physic on host 
-        // client will still update Physic if object is owned ( such as player , bullet )
-        if(IsHost)
-            m_SelfRigidbody.velocity = m_PlayerNetData.Velocity;
     }
 
 
-    private void MovementHandler(){
+    private void InputHandler(){
         float rotation = -1;
-        bool shouldMove = false;
 
         if (Input.GetKey(KeyCode.W)){
-            shouldMove = true;
             if( rotation == -1 ){
                 // no other movement btn were clicked
                 rotation = 0;
@@ -105,7 +95,6 @@ public class PlayerController : NetworkBehaviour
         }
 
         if (Input.GetKey(KeyCode.A)){
-            shouldMove = true;
             if( rotation == -1 ){
                 // no other movement btn were clicked
                 rotation = 270;
@@ -115,7 +104,6 @@ public class PlayerController : NetworkBehaviour
         }
 
         if (Input.GetKey(KeyCode.S)){
-            shouldMove = true;
             if( rotation == -1 ){
                 // no other movement btn were clicked
                 rotation = 180;
@@ -125,7 +113,6 @@ public class PlayerController : NetworkBehaviour
         }
 
         if (Input.GetKey(KeyCode.D)){
-            shouldMove = true;
             if( rotation == -1 ){
                 // no other movement btn were clicked
                 rotation = 90;
@@ -134,18 +121,10 @@ public class PlayerController : NetworkBehaviour
             }
         }
 
-        if(rotation != -1)
-            this.transform.localEulerAngles = new Vector3(0, rotation ,0);
-
-        if(shouldMove)
-            m_SelfRigidbody.velocity = this.transform.forward * m_Speed *10;
-
-        m_PlayerNetData = new PlayerNetData{
-                Rotation = rotation,
-                Velocity = m_SelfRigidbody.velocity,
-                Position = this.transform.position
-            };
-
+        m_PlayerNetData= new PlayerNetData{
+            Rotation = rotation,
+            Position = this.transform.position
+        };
         SentUpdateDataToHostServerRpc(m_PlayerNetData);
     }
 
@@ -155,25 +134,31 @@ public class PlayerController : NetworkBehaviour
     private void SentUpdateDataToHostServerRpc(PlayerNetData playerData){
         // host will do
         // usually call by client 
-        UpdateAllClientRpc(playerData);
+        UpdateplayerDataClientRpc(playerData);
 
     }
 
+    [ServerRpc]
+    private void UpdatBallPosServerRpc(BallData ballData){
+        UpdatBallPosClientRpc( ballData );
+    }    
+
     [ClientRpc]
-    private void UpdateAllClientRpc(PlayerNetData playerData){
+    private void UpdateplayerDataClientRpc(PlayerNetData playerData){
         // host will tell all client to do 
         // Only host can use this method
 
         m_PlayerNetData = playerData;
-        UpdateMovementByReceiveData();
     }
 
-
+    
+    
     [ClientRpc]
-    private void UpdateBallClientRpc(BallNetData ballData){
-        FootBallInGameManager.GetInstacne().UpdateBall(ballData);
+    private void UpdatBallPosClientRpc(BallData ballData){
+        if(Vector3.Distance(ballData.Position , FootBallInGameManager.GetInstacne().GetBallData().Position)>0.5f){
+            FootBallInGameManager.GetInstacne().UpdateBall(ballData);
+        }
     }
-
 
 
 }

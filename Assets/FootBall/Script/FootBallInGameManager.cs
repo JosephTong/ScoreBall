@@ -15,6 +15,7 @@ namespace FootBallNameSpace
         public Transform m_MainCamera;
         public Vector3 m_CameraOffset;
     }
+
 }
 
 public class FootBallInGameManager : MonoBehaviour
@@ -37,6 +38,10 @@ public class FootBallInGameManager : MonoBehaviour
         }
     }
 
+    private void FixedUpdate() {
+        CameraFollowPlayer();
+    }
+
     public void CameraFollowPlayer(){
         if(m_Data.m_MainPlayer){
             m_Data.m_MainCamera.transform.position = m_Data.m_MainPlayer.position + m_Data.m_CameraOffset;
@@ -52,17 +57,20 @@ public class FootBallInGameManager : MonoBehaviour
         m_Instance = null;
     }
 
-    public void UpdateBall(BallNetData ballData){
-        m_Data.m_Ball.position = ballData.Position;
-        m_Data.m_Ball.rotation = ballData.Rotation;
-        m_Data.m_Ball.GetComponent<Rigidbody>().velocity = ballData.Velocity;
+    public BallData GetBallData(){
+        return new BallData{
+            Position = m_Data.m_Ball.position,
+            Rotation = m_Data.m_Ball.eulerAngles,
+            Velocity = m_Data.m_Ball.GetComponent<Rigidbody>().velocity,
+            AngularVelocity = m_Data.m_Ball.GetComponent<Rigidbody>().angularVelocity
+        };
     }
 
-    public BallNetData getBallData(){
-        return new BallNetData{
-            Position = m_Data.m_Ball.position,
-            Rotation = m_Data.m_Ball.rotation,
-            Velocity = m_Data.m_Ball.GetComponent<Rigidbody>().velocity
-        };
+    public void UpdateBall(BallData ballData){
+        m_Data.m_Ball.position = ballData.Position;
+        m_Data.m_Ball.rotation = Quaternion.Euler(ballData.Rotation);
+        m_Data.m_Ball.TryGetComponent<Rigidbody>(out var ballRigidbody);
+        ballRigidbody.velocity = ballData.Velocity;
+        ballRigidbody.angularVelocity = ballData.AngularVelocity;
     }
 }
