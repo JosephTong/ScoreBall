@@ -55,6 +55,7 @@ public class PlayerController : NetworkBehaviour
                 Velocity = Vector3.zero,
                 Position = this.transform.position
             };
+            FootBallInGameManager.GetInstacne().SetMainPlayer(this.transform);
         }
     }
 
@@ -72,6 +73,7 @@ public class PlayerController : NetworkBehaviour
         }
             
 
+        FootBallInGameManager.GetInstacne().CameraFollowPlayer();
         MovementHandler();
     }
 

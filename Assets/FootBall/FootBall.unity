@@ -247,6 +247,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Data:
     m_Ball: {fileID: 965363604}
+    m_MainPlayer: {fileID: 0}
+    m_MainCamera: {fileID: 1434942882}
+    m_CameraOffset: {x: 0, y: 4, z: -8}
 --- !u!1 &132763774
 GameObject:
   m_ObjectHideFlags: 0

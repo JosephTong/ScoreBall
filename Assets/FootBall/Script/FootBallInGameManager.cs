@@ -11,6 +11,9 @@ namespace FootBallNameSpace
     public class FootBallHostData
     {
         public Transform m_Ball;
+        public Transform m_MainPlayer;
+        public Transform m_MainCamera;
+        public Vector3 m_CameraOffset;
     }
 }
 
@@ -32,6 +35,16 @@ public class FootBallInGameManager : MonoBehaviour
         }else{
             m_Instance = this;
         }
+    }
+
+    public void CameraFollowPlayer(){
+        if(m_Data.m_MainPlayer){
+            m_Data.m_MainCamera.transform.position = m_Data.m_MainPlayer.position + m_Data.m_CameraOffset;
+        }
+    }
+
+    public void SetMainPlayer(Transform player){
+        m_Data.m_MainPlayer = player;
     }
 
 
