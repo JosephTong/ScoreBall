@@ -60,11 +60,11 @@ public class PlayerController : NetworkBehaviour
     }
 
     private void FixedUpdate() { 
-        
-        if(IsHost){
-            UpdatBallPosServerRpc(FootBallInGameManager.GetInstacne().GetBallData());
-        }
-        if(IsOwner){
+
+        if(IsOwner){        
+            if(IsHost){
+                UpdatBallPosServerRpc(FootBallInGameManager.GetInstacne().GetBallData());
+            }
             // input
             InputHandler();
         }
