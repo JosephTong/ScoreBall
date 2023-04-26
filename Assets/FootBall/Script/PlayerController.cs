@@ -49,6 +49,7 @@ public class PlayerController : NetworkBehaviour
     public override void OnNetworkSpawn(){
         if(IsOwner){
             this.transform.position = new Vector3((int)Random.Range(-5,5),2.1f,(int)Random.Range(-5,5));
+
             FootBallInGameManager.GetInstacne().SetMainPlayer(this.transform);
             m_PlayerNetData= new PlayerNetData{
                 Rotation = -1,
@@ -68,7 +69,9 @@ public class PlayerController : NetworkBehaviour
             // input
             InputHandler();
         }
+
         MovementHandler();
+        
     }
 
     private void MovementHandler(){
@@ -134,7 +137,7 @@ public class PlayerController : NetworkBehaviour
     private void SentUpdateDataToHostServerRpc(PlayerNetData playerData){
         // host will do
         // usually call by client 
-        UpdateplayerDataClientRpc(playerData);
+        UpdatePlayerDataClientRpc(playerData);
 
     }
 
@@ -144,7 +147,7 @@ public class PlayerController : NetworkBehaviour
     }    
 
     [ClientRpc]
-    private void UpdateplayerDataClientRpc(PlayerNetData playerData){
+    private void UpdatePlayerDataClientRpc(PlayerNetData playerData){
         // host will tell all client to do 
         // Only host can use this method
 
